@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MAPA 3D — Atlas Interativo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- globe -->
+  <div id="globe-container"></div>
+  <div class="vignette"></div>
+
+  <!-- tooltip following cursor -->
+  <div id="cursor-tip"></div>
+
+  <!-- top HUD -->
+  <header class="hud-top">
+    <div class="logo">
+      <div class="logo-mark"><span></span></div>
+      <div>
+        <div class="logo-title">MAPA 3D</div>
+        <div class="logo-sub">Atlas Interativo · v2.6</div>
+      </div>
+    </div>
+
+    <div class="search">
+      <div class="search-input-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-3-3"></path>
+        </svg>
+        <input id="search" type="text" placeholder="BUSCAR PAÍS..." autocomplete="off" />
+      </div>
+      <div class="search-results" id="search-results"></div>
+    </div>
+
+    <div class="meta">
+      <div class="meta-item">
+        <div class="meta-label">UTC</div>
+        <div class="meta-value" id="utc">--:--:--</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">PAÍSES</div>
+        <div class="meta-value" id="country-count">000</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">FPS</div>
+        <div class="meta-value" id="fps">--</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- compass -->
+  <div class="compass">
+    <div class="compass-ring">
+      <div class="compass-N">N</div>
+      <svg viewBox="0 0 100 100" id="compass-svg">
+        <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(255,216,107,0.18)" />
+        <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,216,107,0.1)" stroke-dasharray="2 4" />
+        <!-- tick marks -->
+        <g stroke="rgba(255,216,107,0.5)" stroke-width="1">
+          <line x1="50" y1="2"  x2="50" y2="9" />
+          <line x1="98" y1="50" x2="91" y2="50" />
+          <line x1="50" y1="98" x2="50" y2="91" />
+          <line x1="2"  y1="50" x2="9"  y2="50" />
+        </g>
+        <!-- rotating needle group -->
+        <g id="compass-needle" transform="rotate(0 50 50)">
+          <path d="M50 8 L54 50 L50 56 L46 50 Z" fill="#FFD86B" />
+          <path d="M50 92 L54 50 L50 44 L46 50 Z" fill="rgba(255,216,107,0.35)" />
+          <circle cx="50" cy="50" r="3" fill="#FFD86B" />
+        </g>
+      </svg>
+    </div>
+    <div class="compass-readout">
+      LAT <span id="coord-lat">  0.0°</span> · LNG <span id="coord-lng">  0.0°</span><br/>
+      ALT <span id="coord-alt">  2.20</span>
+    </div>
+  </div>
+
+  <!-- featured chips dock -->
+  <nav class="chips-dock" id="chips-dock">
+    <div class="chips-label">POTÊNCIAS MILITARES</div>
+    <button class="chip" data-iso="USA"><span>EUA</span><span class="chip-iso">USA</span></button>
+    <button class="chip" data-iso="RUS"><span>Rússia</span><span class="chip-iso">RUS</span></button>
+    <button class="chip" data-iso="CHN"><span>China</span><span class="chip-iso">CHN</span></button>
+    <button class="chip" data-iso="IND"><span>Índia</span><span class="chip-iso">IND</span></button>
+    <button class="chip" data-iso="GBR"><span>Reino Unido</span><span class="chip-iso">GBR</span></button>
+    <button class="chip" data-iso="FRA"><span>França</span><span class="chip-iso">FRA</span></button>
+    <button class="chip" data-iso="PRK"><span>Coreia do Norte</span><span class="chip-iso">PRK</span></button>
+    <button class="chip" data-iso="ISR"><span>Israel</span><span class="chip-iso">ISR</span></button>
+  </nav>
+
+  <!-- side info panel -->
+  <aside class="panel" id="panel">
+    <div class="panel-head">
+      <div class="panel-flag" id="panel-flag"></div>
+      <div class="panel-titles">
+        <div class="panel-iso" id="panel-iso">— —</div>
+        <div class="panel-name" id="panel-name">—</div>
+        <div class="panel-region" id="panel-region">—</div>
+      </div>
+      <button class="panel-close" id="panel-close" aria-label="Fechar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="panel-tabs">
+      <button class="panel-tab active" data-tab="geral">GERAL</button>
+      <button class="panel-tab" data-tab="militar">MILITAR</button>
+    </div>
+    <div class="panel-body">
+      <div id="tab-geral" class="tab-pane">
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="stat-label">População</div>
+          <div class="stat-value" data-counter id="stat-pop">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Área</div>
+          <div class="stat-value"><span data-counter id="stat-area">—</span><span class="stat-unit">km²</span></div>
+        </div>
+      </div>
+
+      <div class="row"><div class="row-label">Capital</div><div class="row-value" id="row-capital">—</div></div>
+      <div class="row"><div class="row-label">Sub-região</div><div class="row-value" id="row-subregion">—</div></div>
+      <div class="row"><div class="row-label">Idiomas</div><div class="row-value" id="row-languages">—</div></div>
+      <div class="row"><div class="row-label">Moedas</div><div class="row-value" id="row-currencies">—</div></div>
+      <div class="row"><div class="row-label">Coordenadas</div><div class="row-value" id="row-latlng">—</div></div>
+      <div class="row"><div class="row-label">Densidade</div><div class="row-value" id="row-density">—</div></div>
+
+      <div class="panel-actions">
+        <button class="panel-btn" data-act="focus">▣ Focar</button>
+        <button class="panel-btn" data-act="rotate">↻ Orbitar</button>
+        <button class="panel-btn" data-act="close">✕ Fechar</button>
+      </div>
+      </div><!-- /tab-geral -->
+      <div id="tab-militar" class="tab-pane hidden">
+        <div id="mil-content"></div>
+      </div><!-- /tab-militar -->
+    </div>
+  </aside>
+
+  <!-- bottom HUD -->
+  <footer class="hud-bottom">
+    <div class="keys">
+      CLIQUE PARA SELECIONAR · <span>F</span> FOCAR · <span>R</span> ORBITAR · <span>ESC</span> SAIR
+    </div>
+    <div class="status">
+      <span class="status-dot"></span>
+      SISTEMA ONLINE · GEODATA NATURAL EARTH
+    </div>
+  </footer>
+
+  <!-- loader -->
+  <div class="loader" id="loader">
+    <div class="loader-emblem">
+      <div></div><div></div><div></div>
+    </div>
+    <div>
+      <div class="loader-text" id="loader-text">Inicializando geometria global</div>
+    </div>
+    <div class="loader-bar"></div>
+  </div>
+
+  <script src="https://unpkg.com/globe.gl@2.32.1/dist/globe.gl.min.js"></script>
+  <script src="military.js"></script>
+  <script src="ui.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
